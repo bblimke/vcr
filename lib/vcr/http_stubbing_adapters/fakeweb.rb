@@ -19,15 +19,19 @@ module VCR
           ::FakeWeb.allow_net_connect = value
         end
 
-        def stub_requests(http_interactions)
+        def stub_requests(http_interactions, match_attributes = RequestMatcher::DEFAULT_MATCH_ATTRIBUTES)
           requests = Hash.new([])
 
           http_interactions.each do |i|
-            requests[[i.request.method, i.request.uri]] += [i.response]
+            requests[i.request.matcher(match_attributes)] += [i.response]
           end
 
-          requests.each do |request, responses|
-            ::FakeWeb.register_uri(request.first, request.last, responses.map{ |r| response_hash(r) })
+          requests.each do |request_matcher, responses|
+            ::FakeWeb.register_uri(
+              request_matcher.method || :any,
+              request_matcher.uri,
+              responses.map{ |r| response_hash(r) }
+            )
           end
         end
 
